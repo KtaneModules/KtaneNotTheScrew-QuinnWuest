@@ -1,5 +1,5 @@
 Don't... screw up...?
 
-Made by JakkOfklubs
+Made by JakkOfKlubs
 
 Original module by SL7205
