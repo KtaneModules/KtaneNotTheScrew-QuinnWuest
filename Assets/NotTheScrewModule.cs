@@ -1,11 +1,12 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using UnityEngine;
+
 using Rnd = UnityEngine.Random;
-using KModkit;
-using System;
 
 public class NotTheScrewModule : MonoBehaviour
 {
@@ -327,5 +328,154 @@ public class NotTheScrewModule : MonoBehaviour
             return select.ToArray();
         }
         return null;
+    }
+
+    sealed class DijkstraNode : IEquatable<DijkstraNode>
+    {
+        public bool[] passedThroughNums;
+        public bool[] passedThroughLets;
+        public bool[] passedThroughColors;
+        public int cell;
+        public int prevCell;
+
+        public bool Equals(DijkstraNode other)
+        {
+            var otherNode = other as DijkstraNode;
+            return otherNode != null
+                && otherNode.cell == cell
+                && otherNode.passedThroughNums.SequenceEqual(passedThroughNums)
+                && otherNode.passedThroughLets.SequenceEqual(passedThroughLets)
+                && otherNode.passedThroughColors.SequenceEqual(passedThroughColors);
+        }
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as DijkstraNode);
+        }
+        public override int GetHashCode()
+        {
+            var i = cell;
+            i = passedThroughNums.Aggregate(i, (p, n) => unchecked((p << 1) | (n ? 1 : 0)));
+            i = passedThroughLets.Aggregate(i, (p, n) => unchecked((p << 1) | (n ? 1 : 0)));
+            i = passedThroughColors.Aggregate(i, (p, n) => unchecked((p << 1) | (n ? 1 : 0)));
+            return i;
+        }
+    }
+
+    struct QueueItem
+    {
+        public DijkstraNode Node;
+        public DijkstraNode Parent;
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        if (_moduleSolved)
+            yield break;
+
+        var q = new Queue<QueueItem>();
+        var visited = new Dictionary<DijkstraNode, DijkstraNode>();
+
+        var startNode = new DijkstraNode
+        {
+            cell = curPos,
+            passedThroughColors = passedThroughColors,
+            passedThroughLets = passedThroughLets,
+            passedThroughNums = passedThroughNums
+        };
+
+        DijkstraNode goalNode = null;
+
+        q.Enqueue(new QueueItem { Node = startNode, Parent = null });
+        while (q.Count > 0)
+        {
+            var item = q.Dequeue();
+            if (visited.ContainsKey(item.Node))
+                continue;
+            visited[item.Node] = item.Parent;
+
+            // Found the goal?
+            if (item.Node.cell == endPos && !item.Node.passedThroughLets.Contains(false) && !item.Node.passedThroughColors.Contains(false) && !item.Node.passedThroughNums.Contains(false))
+            {
+                goalNode = item.Node;
+                break;
+            }
+            // If we’ve not fulfilled the requirements, we can’t visit the goal node
+            if (item.Node.cell == endPos)
+                continue;
+
+            for (var edIx = 0; edIx < 4; edIx++)
+            {
+                if (squares[item.Node.cell][edIx] == null)
+                    continue;
+
+                var newCell = item.Node.cell + (edIx == 0 ? 1 : edIx == 1 ? 6 : edIx == 2 ? -1 : -6);
+                if (newCell == item.Node.prevCell)
+                    continue;
+
+                var newPassedThroughColors = item.Node.passedThroughColors.ToArray();
+                newPassedThroughColors[squares[item.Node.cell][edIx].color] = true;
+
+                var newPassedThroughLets = item.Node.passedThroughLets.ToArray();
+                newPassedThroughLets[squares[item.Node.cell][edIx].letter] = true;
+
+                var newPassedThroughNums = item.Node.passedThroughNums.ToArray();
+                newPassedThroughNums[cells[newCell]] = true;
+
+                q.Enqueue(new QueueItem
+                {
+                    Parent = item.Node,
+                    Node = new DijkstraNode
+                    {
+                        cell = newCell,
+                        prevCell = item.Node.cell,
+                        passedThroughColors = newPassedThroughColors,
+                        passedThroughLets = newPassedThroughLets,
+                        passedThroughNums = newPassedThroughNums
+                    }
+                });
+            }
+        }
+
+        if (goalNode == null)
+        {
+            Debug.LogFormat("[Not The Screw #{0}] The autosolver did not find a strikeless path to the goal. Did you navigate into a corner where a strike is unavoidable?", _moduleId);
+            yield break;
+        }
+
+        // Reconstruct the path to the solution
+        var curNode = goalNode;
+        var steps = new List<int>();    // edge index we need to traverse at each step
+        while (curNode != null)
+        {
+            var newNode = visited[curNode];
+            if (newNode == null)
+                break;
+
+            var cellDiff = curNode.cell - newNode.cell;
+            steps.Add(cellDiff == 1 ? 0 : cellDiff == 6 ? 1 : cellDiff == -1 ? 2 : 3);
+            curNode = newNode;
+        }
+
+        // Push the relevant buttons
+        for (int i = steps.Count - 1; i >= 0; i--)
+        {
+            var edge = squares[curPos][steps[i]];
+            var desiredHole = Array.IndexOf(holeColors, edge.color);
+            if (screwLoc != desiredHole)
+            {
+                if (_screwInsert)
+                {
+                    holes[screwLoc].OnInteract();
+                    while (_coroutineRunning)
+                        yield return true;
+                }
+                holes[desiredHole].OnInteract();
+                while (_coroutineRunning)
+                    yield return true;
+            }
+
+            buttons[labels.IndexOf(edge.letter)].OnInteract();
+            yield return new WaitForSeconds(.1f);
+        }
     }
 }
