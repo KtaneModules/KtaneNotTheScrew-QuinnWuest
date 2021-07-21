@@ -16,6 +16,6 @@ MonoBehaviour:
   author: JakkOfKlubs
   description: "Don't... screw up...?\n\r\nMade by JakkOfKlubs\n\nOriginal module
     by SL7205"
-  version: 1.0
+  version: 1.2
   outputFolder: build
   previewImage: {fileID: 2800000, guid: c9365c72954c85940ab1295dbb9c7f00, type: 3}
