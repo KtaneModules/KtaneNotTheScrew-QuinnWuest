@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cf2299c8864afe4ab42466f546ae20d, type: 3}
+  m_Name: WorkshopItem
+  m_EditorClassIdentifier: 
+  WorkshopPublishedFileID: 961153662
+  Title: The Screw
+  Description: "You know what? Screw this module...\r\n\r\nHTML manual: https://ktane.timwi.de/HTML/The%20Screw.html\r\nPDF
+    manual: https://ktane.timwi.de/PDF/The%20Screw.pdf\r\n\r\nModule ID: screw\r\n\r\nIdeas
+    by Zeke\r\n\r\nThis module uses these sounds from freesound:\r\nSocket Wrench
+    by TheGertz ( http://freesound.org/people/TheGertz/ ) The use is under CC BY 3.0
+    license.\r\n\r\nCross Screw model by CaitSith2.\r\n\r\nWorkplace tools asset pack
+    by ikapoura."
+  PreviewImage: {fileID: 2800000, guid: c4857b685101587468aa0711123c3cf7, type: 3}
+  Tags:
+  - Regular Module
