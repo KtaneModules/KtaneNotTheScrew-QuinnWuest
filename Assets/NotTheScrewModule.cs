@@ -26,8 +26,6 @@ public class NotTheScrewModule : MonoBehaviour
     private int _moduleId = 0;
 
     private int screwLoc;
-    private readonly int[] outline_order = { 0, 0, 0, 0, 0, 0 };
-    private readonly int[] button_order = { 0, 0, 0, 0 };
     private readonly float[] holeXPos = { -0.06f, 0f, 0.06f, -0.06f, 0f, 0.06f };
     private readonly float[] holeZPos = { -0.02f, -0.02f, -0.02f, -0.06f, -0.06f, -0.06f };
     private bool _moduleSolved = false;
@@ -41,8 +39,14 @@ public class NotTheScrewModule : MonoBehaviour
 
     private int curPos;
     private int endPos;
+    private int prevPos;
     private int[] holeColors;
+    private string[] colors = { "blue", "green", "magenta", "red", "white", "yellow" };
     private List<int> labels;
+
+    private bool[] passedThroughNums = new bool[4];
+    private bool[] passedThroughLets = new bool[4];
+    private bool[] passedThroughColors = new bool[6];
 
     class edgeInfo
     {
@@ -63,9 +67,10 @@ public class NotTheScrewModule : MonoBehaviour
         // RULE SEED
 
         var rnd = RuleSeedable.GetRNG();
+        Debug.LogFormat("[Not The Screw #{0}] Using rule seed: {1}", _moduleId, rnd.Seed);
+
         rnd.Next(0, 2);
 
-        int[] colors = { 3, 1, 0, 5, 2, 4 };
         squares = new edgeInfo[24][];
         for (var sqIx = 0; sqIx < squares.Length; sqIx++)
         {
@@ -95,7 +100,6 @@ public class NotTheScrewModule : MonoBehaviour
         }
 
         cells = allSudokus[rnd.Next(0, allSudokus.Length)];
-        Debug.LogFormat("{0}", cells.Join(","));
 
         // END RULE SEED
 
@@ -146,7 +150,10 @@ public class NotTheScrewModule : MonoBehaviour
         curPos = Rnd.Range(0, 24);
         if (curPos == endPos)
             goto tryAgainStart;
-        Debug.LogFormat("Start pos: {0}", curPos);
+
+        passedThroughNums[cells[curPos]] = true;
+        Debug.LogFormat("[Not The Screw #{0}] Starting position is column {1}, row {2}", _moduleId, (curPos % 6) + 1, (curPos / 6) + 1);
+        Debug.LogFormat("[Not The Screw #{0}] Ending position is column {1}, row {2}", _moduleId, (endPos % 6) + 1, (endPos / 6) + 1);
 
         SetLabels();
     }
@@ -164,15 +171,64 @@ public class NotTheScrewModule : MonoBehaviour
 
     void PlaceScrew()
     {
-        screwLoc = Rnd.Range(1, 6);
+        screwLoc = Rnd.Range(0, 6);
         screw.transform.localPosition = new Vector3(holeXPos[screwLoc], -0.021f, holeZPos[screwLoc]);
     }
 
     void ButtonPress(int button)
     {
-        Debug.LogFormat("Index: {0}", squares[curPos].IndexOf(edge => edge != null && edge.letter == labels[button] && edge.color == holeColors[screwLoc]));
-        Debug.LogFormat("curPos: {0}", squares[curPos].Join("\n"));
-        Debug.LogFormat("Pressed button {0}", "ABCD".Substring(labels[button], 1));
+        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, buttons[button].transform);
+        buttons[button].AddInteractionPunch(0.5f);
+        if (!_moduleSolved)
+        {
+            int index = squares[curPos].IndexOf(edge => edge != null && edge.letter == labels[button] && edge.color == holeColors[screwLoc]);
+            if (index == -1)
+            {
+                Module.HandleStrike();
+                Debug.LogFormat("[Not The Screw #{0}] Attempted to move from column {1}, row {2} through color {3} label {4}, which doesn't exist. Strike.", _moduleId, (curPos % 6) + 1, (curPos / 6) + 1, colors[holeColors[screwLoc]], "ABCD".Substring(labels[button], 1));
+            }
+            else
+            {
+                int temp = curPos;
+                temp += (index == 0 ? 1 : index == 1 ? 6 : index == 2 ? -1 : -6);
+                if (temp == prevPos)
+                {
+                    Module.HandleStrike();
+                    Debug.LogFormat("[Not The Screw #{0}] Attempted to move from column {1}, row {2} to column {3}, row {4}, which you just previously travelled from. Strike.", _moduleId, (curPos % 6) + 1, (curPos / 6) + 1, (prevPos % 6) + 1, (prevPos / 6) + 1);
+                }
+                else
+                {
+                    prevPos = curPos;
+                    curPos = temp;
+                    screenText.text = (cells[curPos] + 1).ToString();
+                    Debug.LogFormat("[Not The Screw #{0}] Moved to colum {1}, row {2}, with grid number {3}, passing through color {4}, letter {5}", _moduleId, (curPos % 6) + 1, (curPos / 6) + 1, cells[curPos] + 1, colors[holeColors[screwLoc]], "ABCD".Substring(labels[button], 1));
+                    passedThroughNums[cells[curPos]] = true;
+                    passedThroughColors[holeColors[screwLoc]] = true;
+                    passedThroughLets[labels[button]] = true;
+                    var numsDone = !passedThroughNums.Contains(false);
+                    var letsDone = !passedThroughLets.Contains(false);
+                    var colorsDone = !passedThroughColors.Contains(false);
+                    if (curPos == endPos && (!numsDone || !letsDone || !colorsDone))
+                    {
+                        Module.HandleStrike();
+                        if (!numsDone)
+                            Debug.LogFormat("[Not The Screw #{0}] Did not pass through numbers: {1}", _moduleId, Enumerable.Range(0, 4).Where(i => !passedThroughNums[i]).Select(i => i + 1).Join(", "));
+                        if (!letsDone)
+                            Debug.LogFormat("[Not The Screw #{0}] Did not pass through letters: {1}", _moduleId, Enumerable.Range(0, 4).Where(i => !passedThroughLets[i]).Select(i => "ABCD"[i]).Join(", "));
+                        if (!colorsDone)
+                            Debug.LogFormat("[Not The Screw #{0}] Did not pass through colors: {1}", _moduleId, Enumerable.Range(0, 6).Where(i => !passedThroughColors[i]).Select(i => colors[i]).Join(", "));
+                        Debug.LogFormat("[Not The Screw #{0}] Attempted to move to the ending square, but not all requirements have been completed. Strike.", _moduleId);
+                    }
+                    else if (curPos == endPos && numsDone && letsDone && colorsDone)
+                    {
+                        _moduleSolved = true;
+                        Module.HandlePass();
+                        Debug.LogFormat("[Not The Screw #{0}] Travelled to the ending square after completing all requirements. Module solved!", _moduleId);
+                    }
+                }
+                SetLabels();
+            }
+        }
     }
 
     void HandleScrew(int n)
@@ -182,7 +238,8 @@ public class NotTheScrewModule : MonoBehaviour
         {
             Audio.PlaySoundAtTransform("screwdriver_sound", holes[n].transform);
             StartCoroutine(AnimateScrew(screwLoc, screwIn: false));
-            screenText.text = "";
+            if (!_moduleSolved)
+                screenText.text = "";
         }
 
         //screw
@@ -192,7 +249,8 @@ public class NotTheScrewModule : MonoBehaviour
             Audio.PlaySoundAtTransform("screwdriver_sound", holes[n].transform);
             StartCoroutine(AnimateScrew(screwLoc, screwIn: true));
             Debug.LogFormat("[Screw #{0}] Screw in to hole {1}", _moduleId, screwLoc + 1);
-            screenText.text = "?";
+            if (!_moduleSolved)
+                screenText.text = "?";
         }
     }
 
@@ -218,5 +276,56 @@ public class NotTheScrewModule : MonoBehaviour
 
         _coroutineRunning = false;
         _screwInsert = screwIn;
+    }
+#pragma warning disable 414
+    private readonly string TwitchHelpMessage = @"Unscrew with “!{0} unscrew”. Put the screw in the 3rd hole with “!{0} screw 3” or “!{0} screw tr”. Press a button with “!{0} press A” (label) or “!{0} press 1” (position).";
+#pragma warning restore 414
+
+    KMSelectable[] ProcessTwitchCommand(string command)
+    {
+        var select = new List<KMSelectable>();
+        command = command.ToLowerInvariant().Trim();
+
+        if (command.Equals("unscrew"))
+        {
+            return new[] { holes[screwLoc] };
+        }
+
+        if (Regex.IsMatch(command, @"^screw [a-z1-6]+$"))
+        {
+            command = command.Substring(6).Trim();
+
+            switch (command)
+            {
+                case "1": case "tl": case "lt": case "topleft": case "lefttop": select.Add(holes[0]); break;
+                case "2": case "tm": case "mt": case "topmiddle": case "middletop": select.Add(holes[1]); break;
+                case "3": case "tr": case "rt": case "topright": case "righttop": select.Add(holes[2]); break;
+                case "4": case "bl": case "lb": case "buttomleft": case "leftbuttom": select.Add(holes[3]); break;
+                case "5": case "bm": case "mb": case "bottommiddle": case "middlebottom": select.Add(holes[4]); break;
+                case "6": case "br": case "rb": case "bottomright": case "rightbottom": select.Add(holes[5]); break;
+                default: return null;
+            }
+            return select.ToArray();
+        }
+
+        if (Regex.IsMatch(command, @"^press [a-d1-4]+$"))
+        {
+            command = command.Substring(6).Trim();
+
+            switch (command)
+            {
+                case "1": select.Add(buttons[0]); break;
+                case "2": select.Add(buttons[1]); break;
+                case "3": select.Add(buttons[2]); break;
+                case "4": select.Add(buttons[3]); break;
+                case "a": select.Add(buttons[labels.IndexOf(0)]); break;
+                case "b": select.Add(buttons[labels.IndexOf(1)]); break;
+                case "c": select.Add(buttons[labels.IndexOf(2)]); break;
+                case "d": select.Add(buttons[labels.IndexOf(3)]); break;
+                default: return null;
+            }
+            return select.ToArray();
+        }
+        return null;
     }
 }
