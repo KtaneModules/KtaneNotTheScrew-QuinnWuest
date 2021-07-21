@@ -1,10 +1,5 @@
-Screw module for KTaNE
+Don't... screw up...?
 
-Ideas by Zeke
+Made by JakkOfklubs
 
-This module uses these sounds from freesound:
-Socket Wrench by TheGertz ( http://freesound.org/people/TheGertz/ ) The use is under CC BY 3.0 license.
-
-Cross Screw model by CaitSith2.
-
-Workplace tools asset pack by ikapoura.
+Original module by SL7205
