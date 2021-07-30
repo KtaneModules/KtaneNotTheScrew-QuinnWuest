@@ -279,55 +279,54 @@ public class NotTheScrewModule : MonoBehaviour
         _screwInsert = screwIn;
     }
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"Unscrew with “!{0} unscrew”. Put the screw in the 3rd hole with “!{0} screw 3” or “!{0} screw tr”. Press a button with “!{0} press A” (label) or “!{0} press 1” (position).";
+    private readonly string TwitchHelpMessage = @"Unscrew with “!{0} unscrew”. Put the screw in the red hole with “!{0} screw R”. Press a button with “!{0} press A” (label). Commands can be chained with commas. The screw will be unscrewed before screwing it into a hole.";
 #pragma warning restore 414
 
-    KMSelectable[] ProcessTwitchCommand(string command)
+    IEnumerator ProcessTwitchCommand(string command)
     {
-        var select = new List<KMSelectable>();
-        command = command.ToLowerInvariant().Trim();
-
-        if (command.Equals("unscrew"))
-        {
-            return new[] { holes[screwLoc] };
-        }
-
-        if (Regex.IsMatch(command, @"^screw [a-z1-6]+$"))
-        {
-            command = command.Substring(6).Trim();
-
-            switch (command)
+        string[] commands = command.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x =>
+            x.Trim().ToUpperInvariant()).ToArray();
+        List<Match[]> matches = new List<Match[]>();
+        foreach (string cmd in commands)
+            matches.Add(new Match[]
             {
-                case "1": case "tl": case "lt": case "topleft": case "lefttop": select.Add(holes[0]); break;
-                case "2": case "tm": case "mt": case "topmiddle": case "middletop": select.Add(holes[1]); break;
-                case "3": case "tr": case "rt": case "topright": case "righttop": select.Add(holes[2]); break;
-                case "4": case "bl": case "lb": case "buttomleft": case "leftbuttom": select.Add(holes[3]); break;
-                case "5": case "bm": case "mb": case "bottommiddle": case "middlebottom": select.Add(holes[4]); break;
-                case "6": case "br": case "rb": case "bottomright": case "rightbottom": select.Add(holes[5]); break;
-                default: return null;
-            }
-            return select.ToArray();
-        }
-
-        if (Regex.IsMatch(command, @"^press [a-d1-4]+$"))
-        {
-            command = command.Substring(6).Trim();
-
-            switch (command)
+                Regex.Match(cmd, @"^UNSCREW$"),
+                Regex.Match(cmd, @"^SCREW\s+([BGMRWY])$"),
+                Regex.Match(cmd, @"^PRESS\s+([ABCD])$")
+            });
+        for (int i = 0; i < commands.Length; i++)
+            if (matches[i].All(x => !x.Success))
             {
-                case "1": select.Add(buttons[0]); break;
-                case "2": select.Add(buttons[1]); break;
-                case "3": select.Add(buttons[2]); break;
-                case "4": select.Add(buttons[3]); break;
-                case "a": select.Add(buttons[labels.IndexOf(0)]); break;
-                case "b": select.Add(buttons[labels.IndexOf(1)]); break;
-                case "c": select.Add(buttons[labels.IndexOf(2)]); break;
-                case "d": select.Add(buttons[labels.IndexOf(3)]); break;
-                default: return null;
+                yield return "sendtochaterror Invalid command at position " + (i + 1);
+                yield break;
             }
-            return select.ToArray();
+        yield return null;
+        foreach (Match[] matchGroup in matches)
+        {
+            if (matchGroup[0].Success && _screwInsert)
+            {
+                holes[screwLoc].OnInteract();
+                yield return new WaitUntil(() => !_coroutineRunning);
+            }
+            else if (matchGroup[1].Success)
+            {
+                if (_screwInsert)
+                {
+                    holes[screwLoc].OnInteract();
+                    yield return new WaitUntil(() => !_coroutineRunning);
+                }
+                int submitCol = "BGMRWY".IndexOf(matchGroup[1].Groups[1].Value[0]);
+                holes[Array.IndexOf(holeColors, submitCol)].OnInteract();
+                yield return new WaitUntil(() => !_coroutineRunning);
+            }
+            else if (matchGroup[2].Success)
+            {
+                int submitButton = matchGroup[2].Groups[1].Value[0] - 'A';
+                buttons[Array.IndexOf(labels.ToArray(), submitButton)].OnInteract();
+                yield return new WaitForSeconds(0.2f);
+            }
         }
-        return null;
+
     }
 
     sealed class DijkstraNode : IEquatable<DijkstraNode>
