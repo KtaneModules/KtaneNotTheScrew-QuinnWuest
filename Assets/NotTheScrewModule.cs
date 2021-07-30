@@ -249,7 +249,6 @@ public class NotTheScrewModule : MonoBehaviour
             screwLoc = n;
             Audio.PlaySoundAtTransform("screwdriver_sound", holes[n].transform);
             StartCoroutine(AnimateScrew(screwLoc, screwIn: true));
-            Debug.LogFormat("[Screw #{0}] Screw in to hole {1}", _moduleId, screwLoc + 1);
             if (!_moduleSolved)
                 screenText.text = "?";
         }
