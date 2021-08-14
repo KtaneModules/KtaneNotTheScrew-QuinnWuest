@@ -2281,37 +2281,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfd90cfc67fb92b44b1e574547905caf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _screw: {fileID: 1137271953016904}
   Audio: {fileID: 114742305499245762}
   Module: {fileID: 114148157311778398}
-  Info: {fileID: 114891608532472726}
   RuleSeedable: {fileID: 114322838360563564}
-  holes:
+  _holes:
   - {fileID: 114896038259343978}
   - {fileID: 114088165472348318}
   - {fileID: 114072838120323550}
   - {fileID: 114887931441277892}
   - {fileID: 114055442282716146}
   - {fileID: 114733514728463960}
-  buttons:
+  _buttons:
   - {fileID: 114866111991337192}
   - {fileID: 114649114739267738}
   - {fileID: 114684992978993466}
   - {fileID: 114972963602107022}
-  screw: {fileID: 1137271953016904}
-  outlines:
+  _outlines:
   - {fileID: 23718929081439638}
   - {fileID: 23059017673103426}
   - {fileID: 23718727028347644}
   - {fileID: 23338853521637342}
   - {fileID: 23841804486545720}
   - {fileID: 23873666246204520}
-  buttonText:
+  _screenText: {fileID: 102679825444595460}
+  _buttonText:
   - {fileID: 102734482372720066}
   - {fileID: 102911500466926212}
   - {fileID: 102913777167677886}
   - {fileID: 102154048398953640}
-  screenText: {fileID: 102679825444595460}
-  outlineTexture:
+  _outlineTexture:
   - {fileID: 2800000, guid: f9ac92e213ef8954cbf9d7271d733b3c, type: 3}
   - {fileID: 2800000, guid: 648c7ce1ca83b7e458264fbe50ea2aaf, type: 3}
   - {fileID: 2800000, guid: 68965a280e73a7446becc76fa8866a5a, type: 3}
