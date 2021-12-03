@@ -10,24 +10,15 @@ using Rnd = UnityEngine.Random;
 
 public partial class NotTheScrewModule : MonoBehaviour
 {
-    [SerializeField]
-    private GameObject _screw;
-    [SerializeField]
-    private KMAudio Audio;
-    [SerializeField]
-    private KMBombModule Module;
-    [SerializeField]
-    private KMRuleSeedable RuleSeedable;
-    [SerializeField]
-    private KMSelectable[] _holes, _buttons;
-    [SerializeField]
-    private MeshRenderer[] _outlines;
-    [SerializeField]
-    private TextMesh _screenText;
-    [SerializeField]
-    private TextMesh[] _buttonText;
-    [SerializeField]
-    private Texture[] _outlineTexture;
+    public GameObject _screw;
+    public KMAudio Audio;
+    public KMBombModule Module;
+    public KMRuleSeedable RuleSeedable;
+    public KMSelectable[] _holes, _buttons;
+    public MeshRenderer[] _outlines;
+    public TextMesh _screenText;
+    public TextMesh[] _buttonText;
+    public Texture[] _outlineTexture;
 
     private bool _moduleSolved, _coroutineRunning, _screwInsert = true;
     private bool[] _passedThroughNums = new bool[4], _passedThroughLets = new bool[4], _passedThroughColors = new bool[6];
@@ -122,6 +113,8 @@ public partial class NotTheScrewModule : MonoBehaviour
         for (int i = 0; i < _holes.Length; i++)
             _outlines[i].material.mainTexture = _outlineTexture[_holeColors[i]];
         _endPos = row * 6 + col;
+        if (_endPos == 1 || _endPos == 4 || _endPos == 6 || _endPos == 11 || _endPos == 12 || _endPos == 17 || _endPos == 19 || _endPos == 22)
+            goto TryAgainEnd;
 
         //Start position
         _curPos = Enumerable.Range(0, 24).Except(new[] { _endPos }).PickRandom();
@@ -267,7 +260,7 @@ public partial class NotTheScrewModule : MonoBehaviour
             matches.Add(new Match[]
             {
                 Regex.Match(cmd, @"^UNSCREW$"),
-                Regex.Match(cmd, @"^SCREW\s+([BGMRWY])$"),
+                Regex.Match(cmd, @"^SCREW\s+([BGMRWY]|BLUE|GREEN|MAGENTA|RED|WHITE|YELLOW)$"),
                 Regex.Match(cmd, @"^PRESS\s+([ABCD])$")
             });
         for (int i = 0; i < commands.Length; i++)
